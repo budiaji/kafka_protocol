@@ -63,19 +63,24 @@ parse(#kpro_rsp{ api = fetch
                , vsn = Vsn
                , msg = Msg
                }) ->
-  ErrorCode = kpro:find(error_code, Msg, ?no_error),
+  EC1 = kpro:find(error_code, Msg, ?no_error),
   SessionID = kpro:find(session_id, Msg, 0),
-  {Header, Batches} =
+  {Header, Batches, EC2} =
     case kpro:find(responses, Msg) of
       [] ->
         %% a session init without data
-        {undefined, []};
+        {undefined, [], ?no_error};
       _ ->
         PartitionRsp = get_partition_rsp(Msg),
         Header0 = kpro:find(partition_header, PartitionRsp),
         Records = kpro:find(record_set, PartitionRsp),
-        {Header0, decode_batches(Vsn, Records)}
+        ECx = kpro:find(error_code, Header0),
+        {Header0, decode_batches(Vsn, Records), ECx}
     end,
+  ErrorCode = case EC2 =:= ?no_error of
+                true  -> EC1;
+                false -> EC2
+              end,
   #{ error_code => ErrorCode
    , session_id => SessionID
    , header => Header
