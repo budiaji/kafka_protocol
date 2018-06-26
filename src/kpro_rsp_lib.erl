@@ -98,9 +98,8 @@ parse(#kpro_rsp{ api = create_partitions
                , msg = Msg
                }) ->
   error_if_any(kpro:find(topic_errors, Msg));
-parse(Rsp) ->
-  %% Not supported yet
-  Rsp.
+parse(#kpro_rsp{msg = Msg}) ->
+  Msg.
 
 %% @doc Decode struct.
 dec_struct([], Fields, _Stack, Bin) ->
@@ -119,7 +118,7 @@ error_if_any(Errors) ->
   Pred = fun(Struct) -> kpro:find(error_code, Struct) =/= ?no_error end,
   case lists:filter(Pred, Errors) of
     [] -> ok;
-    Errs -> {error, Errs}
+    Errs -> erlang:error(Errs)
   end.
 
 decode_batches(Vsn, <<>>) when Vsn >= ?MIN_MAGIC_2_FETCH_API_VSN ->
